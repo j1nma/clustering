@@ -1,0 +1,26 @@
+Directory results/breast-cancer-wisconsin/PCA/20200428_012935/ created.
+Size of the data: (569, 30) and labels: (569,)
+Size of the reshaped dataframe: (569, 31)
+   mean radius  mean texture  ...  worst fractal dimension      label
+0        17.99         10.38  ...                  0.11890  malignant
+1        20.57         17.77  ...                  0.08902  malignant
+2        19.69         21.25  ...                  0.08758  malignant
+3        11.42         20.38  ...                  0.17300  malignant
+4        20.29         14.34  ...                  0.07678  malignant
+
+[5 rows x 31 columns]
+     mean radius  mean texture  ...  worst fractal dimension      label
+564        21.56         22.39  ...                  0.07115  malignant
+565        20.13         28.25  ...                  0.06637  malignant
+566        16.60         28.08  ...                  0.07820  malignant
+567        20.60         29.33  ...                  0.12400  malignant
+568         7.76         24.54  ...                  0.07039     benign
+
+[5 rows x 31 columns]
+Cumulative explained variation for 2 principal components: 0.632
+          PC 1      PC 2
+564   6.439315 -3.576817
+565   3.793382 -3.584048
+566   1.256179 -1.902297
+567  10.374794  1.672010
+568  -5.475243 -0.670637
