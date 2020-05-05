@@ -6,7 +6,7 @@ import os
 import pandas as pd
 import sys
 import time
-from sklearn.datasets import load_iris, load_breast_cancer
+from sklearn.datasets import load_iris, load_breast_cancer, make_circles
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE, MDS
@@ -28,7 +28,7 @@ def get_args_parser():
         "-d",
         "--dataset",
         default="Iris",
-        help="Name of the dataset to use: Iris, BreastCancer."
+        help="Name of the dataset to use: Iris, BreastCancer, NoisyCircles."
     )
     parser.add_argument(
         "-t",
@@ -86,6 +86,11 @@ def experiments(config_file):
         dataset = load_breast_cancer()
         dataset_name = "Breast Cancer Wisconsin"
         original_labels = ['malignant', 'benign']
+    elif args.dataset == 'NoisyCircles':
+        n_samples = 1500
+        noisy_circles = make_circles(n_samples=n_samples, factor=.5, noise=.05)
+        dataset = noisy_circles
+        dataset_name = "NoisyCircles"
     else:
         raise ("Dataset not found")
 
