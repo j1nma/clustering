@@ -1,5 +1,5 @@
 ## Clustering
-This work experiments with three clustering techniques in Python, including one from either hierarchical and partitive
+This work experiments with three clustering techniques in Python, including one from either hierarchical and partitional
 techniques.
 
 ### Installation
