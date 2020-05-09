@@ -251,7 +251,7 @@ def plot_agglomerative_dendograms(config_file):
     n_samples = 1500
     noisy_circles = make_circles(n_samples=n_samples, factor=.5, noise=.05)
 
-    plt.figure(figsize=(8 * 4 + 6, 12.5))
+    plt.figure(figsize=(2 * 10 + 2, 18.5))
     plt.subplots_adjust(left=.02, right=.98, bottom=.001, top=.96, wspace=.05, hspace=.01)
     plt.style.use('dark_background')
     plot_num = 1
@@ -316,9 +316,13 @@ def plot_agglomerative_dendograms(config_file):
 
             plt.subplot(len(datasets), len(techniques), plot_num)
             if i == 0:
-                plt.title("{}".format(name), size=15)
+                plt.title("{}".format(name), size=18)
 
-            plot_dendrogram(model, truncate_mode='level', p=n_clusters)
+            plt.xlim(-2.5, 2.5)
+            plt.ylim(-2.5, 2.5)
+            plt.xticks(())
+            plt.yticks(())
+            plot_dendrogram(model, truncate_mode='level', p=n_clusters, no_labels=True)
             plot_num += 1
 
     # Plotting
@@ -326,5 +330,5 @@ def plot_agglomerative_dendograms(config_file):
 
 
 if __name__ == "__main__":
-    experiments(config_file=sys.argv[1])
+    # experiments(config_file=sys.argv[1])
     plot_agglomerative_dendograms(config_file=sys.argv[1])
