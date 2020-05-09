@@ -1,0 +1,55 @@
+Directory results/20200509_204758/ created.
+Iris, Agglomerative Avg
+	Overall entropy: 0.453
+	F1 Score: 0.653
+Iris, Agglomerative Single
+	Overall entropy: 0.462
+	F1 Score: 0.0
+Iris, Agglomerative Complete
+	Overall entropy: 0.413
+	F1 Score: 0.013
+Iris, Agglomerative Ward
+	Overall entropy: 0.376
+	F1 Score: 0.013
+Iris, kMeans
+	Overall entropy: 0.374
+	F1 Score: 0.5
+Iris, GaussianMixture
+	Overall entropy: 0.112
+	F1 Score: 0.0
+Breast Cancer, Agglomerative Avg
+	Overall entropy: 0.657
+	F1 Score: 0.369
+Breast Cancer, Agglomerative Single
+	Overall entropy: 0.657
+	F1 Score: 0.369
+Breast Cancer, Agglomerative Complete
+	Overall entropy: 0.657
+	F1 Score: 0.369
+Breast Cancer, Agglomerative Ward
+	Overall entropy: 0.366
+	F1 Score: 0.88
+Breast Cancer, kMeans
+	Overall entropy: 0.301
+	F1 Score: 0.91
+Breast Cancer, GaussianMixture
+	Overall entropy: 0.227
+	F1 Score: 0.938
+Noisy Circles, Agglomerative Avg
+	Overall entropy: 0.0
+	F1 Score: 1.0
+Noisy Circles, Agglomerative Single
+	Overall entropy: 0.0
+	F1 Score: 1.0
+Noisy Circles, Agglomerative Complete
+	Overall entropy: 0.69
+	F1 Score: 0.469
+Noisy Circles, Agglomerative Ward
+	Overall entropy: 0.687
+	F1 Score: 0.553
+Noisy Circles, kMeans
+	Overall entropy: 0.693
+	F1 Score: 0.501
+Noisy Circles, GaussianMixture
+	Overall entropy: 0.693
+	F1 Score: 0.503
