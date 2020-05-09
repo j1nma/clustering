@@ -281,15 +281,15 @@ def plot_agglomerative_dendograms(config_file):
 
         ward_linkage = cluster.AgglomerativeClustering(
             linkage="ward",
-            distance_threshold=0, n_clusters=None, )
+            distance_threshold=0, n_clusters=None)
 
         complete_linkage = cluster.AgglomerativeClustering(
             linkage="complete",
-            distance_threshold=0, n_clusters=None, )
+            distance_threshold=0, n_clusters=None)
 
         single_linkage = cluster.AgglomerativeClustering(
             linkage="single",
-            distance_threshold=0, n_clusters=None, )
+            distance_threshold=0, n_clusters=None)
 
         techniques = (
             ('Agglomerative Avg', average_linkage),
