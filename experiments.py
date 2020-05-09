@@ -196,7 +196,7 @@ def experiments(config_file):
             overall_entropy = get_overall_entropy(true_cluster_labels, y.shape[0])
 
             # F-Score metric
-            f1_score = metrics.f1_score(y, y_pred, average='micro')
+            f1_score = metrics.f1_score(y, y_pred, average='weighted')
 
             log(logfile, "\tOverall entropy: " + str(round(overall_entropy, 3)))
             log(logfile, "\tF1 Score: " + str(round(f1_score, 3)))
@@ -330,5 +330,5 @@ def plot_agglomerative_dendograms(config_file):
 
 
 if __name__ == "__main__":
-    # experiments(config_file=sys.argv[1])
+    experiments(config_file=sys.argv[1])
     plot_agglomerative_dendograms(config_file=sys.argv[1])
