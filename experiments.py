@@ -1,20 +1,19 @@
 import argparse
 import datetime
+import math
 import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import pandas as pd
 import sys
 import time
 from itertools import cycle, islice
-from sklearn import cluster
+from scipy.cluster.hierarchy import dendrogram
+from sklearn import cluster, mixture, metrics
 from sklearn.datasets import load_iris, load_breast_cancer, make_circles
-from sklearn.manifold import TSNE, MDS
 from sklearn.neighbors import kneighbors_graph
 from sklearn.preprocessing import StandardScaler
-from mpl_toolkits.mplot3d import Axes3D
 from pathlib import Path
 
 
@@ -66,6 +65,41 @@ def get_args_parser():
 
     return parser
 
+def plot_dendrogram(model, **kwargs):
+    # Create linkage matrix and then plot the dendrogram
+
+    # create the counts of samples under each node
+    counts = np.zeros(model.children_.shape[0])
+    n_samples = len(model.labels_)
+    for i, merge in enumerate(model.children_):
+        current_count = 0
+        for child_idx in merge:
+            if child_idx < n_samples:
+                current_count += 1  # leaf node
+            else:
+                current_count += counts[child_idx - n_samples]
+        counts[i] = current_count
+
+    linkage_matrix = np.column_stack([model.children_, model.distances_,
+                                      counts]).astype(float)
+
+    # Plot the corresponding dendrogram
+    dendrogram(linkage_matrix, **kwargs)
+
+# Returns indices where labels taken a particular cluster number
+def get_cluster_indices(cluster_number, labels):
+    return np.where(cluster_number == labels)[0]
+
+# Computes entropy for a specific cluster TODO cite
+def cluster_entropy(cluster_types):
+    length = len(cluster_types)
+    probs = {elem:float(sum([elem == s for s in cluster_types]))/length for elem in set(cluster_types)}
+    h = -sum([probs[p] * math.log(probs[p]) for p in probs])
+    return h
+
+# Calculates the entropy of each cluster, and returns a list of group entropies TODO cite
+def all_cluster_entropy(all_cluster_types, data_size):
+    return sum([cluster_entropy(cluster_types) * (cluster_types.size/data_size) for cluster_types in all_cluster_types])
 
 def experiments(config_file):
     args = get_args_parser().parse_args(['@' + config_file])
@@ -84,170 +118,198 @@ def experiments(config_file):
 
     # Logging
     logfile = outdir + 'log.txt'
-
     log(logfile, "Directory " + outdir + " created.")
 
     # Set dataset
-    if args.dataset == 'Iris':
-        dataset = load_iris()
-        dataset_name = "Iris"
-        original_labels = ['setosa', 'versicolour', 'virginica']
-    elif args.dataset == 'BreastCancer':
-        dataset = load_breast_cancer()
-        dataset_name = "Breast Cancer Wisconsin"
-        original_labels = ['malignant', 'benign']
-    elif args.dataset == 'NoisyCircles':
-        n_samples = 1500
-        noisy_circles = make_circles(n_samples=n_samples, factor=.5, noise=.05)
-        dataset = noisy_circles
-        dataset_name = "NoisyCircles"
-    else:
-        raise ("Dataset not found")
+    n_samples = 1500
+    noisy_circles = make_circles(n_samples=n_samples, factor=.5, noise=.05)
 
-    if dataset_name != "NoisyCircles":
-        data = dataset.data
-        labels = dataset.target
-
-    # Add labels and feature names
-    # df = pd.DataFrame(data, columns=dataset.feature_names)
-    # df['label'] = labels
-    # df['label'] = df['label'].apply(lambda i: str(i))
-    # for i in range(0, len(original_labels)):
-    #     df['label'].replace(str(i), original_labels[i], inplace=True)
-
-    # Dataset analysis
-    # log(logfile, 'Size of the data: {} and labels: {}'.format(data.shape, labels.shape))
-    # log(logfile, 'Size of the reshaped dataframe: {}'.format(df.shape))
-    # log(logfile, df.head())
-    # log(logfile, df.tail())
-
-    # Normalization of features
-    # data = df.loc[:, dataset.feature_names].values
-    # data = StandardScaler().fit_transform(data)
-
-    # Set number of components
-    # n_components = int(args.components)
-
-    X, y = dataset
-
+    plt.figure(figsize=(7 * 2 + 3, 12.5))
+    plt.subplots_adjust(left=.02, right=.98, bottom=.001, top=.96, wspace=.05, hspace=.01)
     plot_num = 1
 
-    # Set technique
-    if args.technique == 'Agglomerative':
+    datasets = (
+        (3, load_iris(return_X_y=True)),
+        # (2, load_breast_cancer(return_X_y=True)),
+        # (2, noisy_circles)
+    )
+
+    # TODO: add comments and cite original script from sklearn
+    for i_dataset, (n_clusters, dataset) in enumerate(datasets):
+        X, y = dataset
+
+        # Normalization of features for easier parameter selection
+        X = StandardScaler().fit_transform(X)
 
         connectivity = kneighbors_graph(X, n_neighbors=int(args.kneighbours), include_self=False)
+        connectivity = 0.5 * (connectivity + connectivity.T) # Make connectivity symmetric
 
         average_linkage = cluster.AgglomerativeClustering(
             linkage="average",
             affinity="cityblock",
-            n_clusters=2,
+            n_clusters=n_clusters,
             connectivity=connectivity)
 
-        algorithm = average_linkage
+        ward_linkage = cluster.AgglomerativeClustering(
+            linkage="ward",
+            n_clusters=n_clusters)
 
-        time_start = time.time()
+        complete_linkage = cluster.AgglomerativeClustering(
+            linkage="complete",
+            n_clusters=n_clusters)
 
-        # catch warnings related to kneighbors_graph
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                message="the number of connected components of the " +
-                        "connectivity matrix is [0-9]{1,2}" +
-                        " > 1. Completing it to avoid stopping the tree early.",
-                category=UserWarning)
-            warnings.filterwarnings(
-                "ignore",
-                message="Graph is not fully connected, spectral embedding" +
-                        " may not work as expected.",
-                category=UserWarning)
-            # average_linkage.fit(X)
-            algorithm.fit(X)
+        single_linkage = cluster.AgglomerativeClustering(
+            linkage="single",
+            n_clusters=n_clusters)
 
-        # log(logfile, 'Cumulative explained variation for {} principal components: {}'.format(n_components,
-        #                                                                                      np.sum(
-        #                                                                                          pca.explained_variance_ratio_).round(
-        #                                                                                          decimals=3)))
+        k_means = cluster.KMeans(n_clusters=n_clusters)
 
-        time_stop = time.time()
-        if hasattr(algorithm, 'labels_'):
-            y_pred = algorithm.labels_.astype(np.int)
-        else:
-            y_pred = algorithm.predict(X)
+        gaussian_mixture = mixture.GaussianMixture(
+            n_components=n_clusters,
+            covariance_type='full')
 
-        # plt.subplot(len(datasets), len(clustering_algorithms), plot_num)
-        plt.subplot(3, 3, plot_num)
-        # if i_dataset == 0:
-        if plot_num == 1:
-            plt.title("{} of {} Dataset".format(args.technique, dataset_name), size=18)
+        # Set techniques
+        techniques = (
+            ('Agglomerative Avg', average_linkage),
+            # ('Agglomerative Single', single_linkage),
+            # ('Agglomerative Complete', complete_linkage),
+            # ('Agglomerative Ward', ward_linkage),
+            # ('kMeans', k_means),
+            # ('GaussianMixture', gaussian_mixture),
+        )
 
-        colors = np.array(list(islice(cycle(['#377eb8', '#ff7f00', '#4daf4a',
-                                             '#f781bf', '#a65628', '#984ea3',
-                                             '#999999', '#e41a1c', '#dede00']),
-                                      int(max(y_pred) + 1))))
-        # add black color for outliers (if any)
-        colors = np.append(colors, ["#000000"])
-        plt.scatter(X[:, 0], X[:, 1], s=10, color=colors[y_pred])
+        for name, technique in techniques:
+            time_start = time.time()
 
-        plt.xlim(-2.5, 2.5)
-        plt.ylim(-2.5, 2.5)
-        plt.xticks(())
-        plt.yticks(())
-        plt.text(.99, .01, ('%.2fs' % (time_stop - time_start)).lstrip('0'),
-                 transform=plt.gca().transAxes, size=15,
-                 horizontalalignment='right')
-        plot_num += 1
+            # Catch warnings related to kneighbors_graph
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    message="the number of connected components of the " +
+                            "connectivity matrix is [0-9]{1,2}" +
+                            " > 1. Completing it to avoid stopping the tree early.",
+                    category=UserWarning)
+                warnings.filterwarnings(
+                    "ignore",
+                    message="Graph is not fully connected, spectral embedding" +
+                            " may not work as expected.",
+                    category=UserWarning)
+                technique.fit(X)
 
+            time_stop = time.time()
+            if hasattr(technique, 'labels_'):
+                y_pred = technique.labels_.astype(np.int)
+            else:
+                y_pred = technique.predict(X)
 
-    elif args.technique == 'kMeans':
-        time_start = time.time()
-        tsne = TSNE(n_components=n_components, n_iter=1000, random_state=int(args.seed))
-        data_transformed = tsne.fit_transform(data)
-        log(logfile, 't-SNE done! Time elapsed: {0:.3f} seconds'.format(time.time() - time_start))
-        transformed_df = pd.DataFrame(data=data_transformed, columns=['PC ' + str(i + 1) for i in range(n_components)])
+            plt.subplot(len(datasets), len(techniques), plot_num)
+            if i_dataset == 0:
+                plt.title("{}".format(name), size=15)
 
-    elif args.technique == 'GaussianMixture':
-        embedding = MDS(n_components=n_components)
-        data_transformed = embedding.fit_transform(data)
-        log(logfile, 'MDS transformation shape: {}'.format(data_transformed.shape))
-        transformed_df = pd.DataFrame(data=data_transformed, columns=['PC ' + str(i + 1) for i in range(n_components)])
+            colors = np.array(list(islice(cycle(['#377eb8', '#ff7f00', '#4daf4a']),int(max(y_pred) + 1))))
+            colors = np.append(colors, ["#000000"]) # Add black color for outliers (if any)
+            plt.scatter(X[:, 0], X[:, 1], s=10, color=colors[y_pred], alpha=0.60)
 
-    else:
-        raise ("Technique not found")
+            plt.xlim(-2.5, 2.5)
+            plt.ylim(-2.5, 2.5)
+            plt.xticks(())
+            plt.yticks(())
+            plt.text(.99, .01, ('%.2fs' % (time_stop - time_start)).lstrip('0'),
+                     transform=plt.gca().transAxes, size=15,
+                     horizontalalignment='right')
+            plot_num += 1
 
-    # log(logfile, transformed_df.tail())
+            # Metrics
+            # Entropy
+            all_cluster_types = [y[get_cluster_indices(c, y_pred)] for c in range(n_clusters)]
+            all_entropies = all_cluster_entropy(all_cluster_types, y.shape[0])
+
+            # F-Score
+            fscore = metrics.f1_score(y, y_pred, average='micro')
+            a = 0
 
     # Plotting
-    # if n_components == 3:
-    #     fig = plt.figure(figsize=(10, 10))
-    #     ax = Axes3D(fig)
-    #     ax.set_zlabel('PC 3', fontsize=15)
-    # elif n_components == 2:
-    #     plt.figure(figsize=(10, 10))
-    #
-    # plt.xticks(fontsize=12)
-    # plt.yticks(fontsize=14)
-    # plt.xlabel('PC 1', fontsize=15)
-    # plt.ylabel('PC 2', fontsize=15)
-    #
-    # plt.title("{} of {} Dataset".format(args.technique, dataset_name), fontsize=20)
-    # colors = ['r', 'g', 'b']
-    # for label, color in zip(original_labels, colors):
-    #     indicesToKeep = df['label'] == label
-    #     if n_components == 3:
-    #         ax.scatter(transformed_df.loc[indicesToKeep, 'PC 1'],
-    #                    transformed_df.loc[indicesToKeep, 'PC 2'],
-    #                    transformed_df.loc[indicesToKeep, 'PC 3'], c=color, s=50)
-    #     else:
-    #         plt.scatter(transformed_df.loc[indicesToKeep, 'PC 1'],
-    #                     transformed_df.loc[indicesToKeep, 'PC 2'], c=color, s=50)
+    plt.savefig(outdir + 'plot.svg', format="svg")
 
-    # if args.dataset == 'Iris':
-    #     plt.legend(original_labels, prop={'size': 15}, loc="lower right")
-    # else:
-    #     plt.legend(original_labels, prop={'size': 15}, loc="upper right")
 
-    plt.savefig(outdir + '{}_k={}.svg'.format(args.technique, args.clusters), format="svg")
+def plot_agglomerative_dendograms(config_file):
+    args = get_args_parser().parse_args(['@' + config_file])
 
+    # Set seed
+    np.random.seed(int(args.seed))
+
+    # Construct output directory
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    outdir = args.outdir + timestamp + '/'
+
+    # Create results directory
+    outdir_path = Path(outdir)
+    if not outdir_path.is_dir():
+        os.makedirs(outdir)
+
+    # Set dataset
+    n_samples = 1500
+    noisy_circles = make_circles(n_samples=n_samples, factor=.5, noise=.05)
+
+    plt.figure(figsize=(7 * 2 + 3, 12.5))
+    plt.subplots_adjust(left=.02, right=.98, bottom=.001, top=.96, wspace=.05, hspace=.01)
+    plot_num = 1
+
+    datasets = (
+        (3, load_iris(return_X_y=True)),
+        (2, load_breast_cancer(return_X_y=True)),
+        (2, noisy_circles)
+    )
+
+    for i_dataset, (n_clusters, dataset) in enumerate(datasets):
+        X, y = dataset
+
+        # Normalization of features for easier parameter selection
+        X = StandardScaler().fit_transform(X)
+
+        connectivity = kneighbors_graph(X, n_neighbors=int(args.kneighbours), include_self=False)
+        connectivity = 0.5 * (connectivity + connectivity.T) # Make connectivity symmetric
+
+        # setting distance_threshold=0 ensures we compute the full tree. TODO cite source
+        average_linkage = cluster.AgglomerativeClustering(
+            linkage="average",
+            affinity="cityblock",
+            distance_threshold=0, n_clusters=None,
+            connectivity=connectivity)
+
+        ward_linkage = cluster.AgglomerativeClustering(
+            linkage="ward",
+            distance_threshold=0, n_clusters=None,)
+
+        complete_linkage = cluster.AgglomerativeClustering(
+            linkage="complete",
+            distance_threshold=0, n_clusters=None,)
+
+        single_linkage = cluster.AgglomerativeClustering(
+            linkage="single",
+            distance_threshold=0, n_clusters=None,)
+
+        techniques = (
+            ('Agglomerative Avg', average_linkage),
+            ('Agglomerative Single', single_linkage),
+            ('Agglomerative Complete', complete_linkage),
+            ('Agglomerative Ward', ward_linkage)
+        )
+
+        for name, technique in techniques:
+            model = technique.fit(X)
+
+            plt.subplot(len(datasets), len(techniques), plot_num)
+            if i_dataset == 0:
+                plt.title("{}".format(name), size=15)
+
+            plot_dendrogram(model, truncate_mode='level', p=n_clusters)
+            # plt.xlabel("Number of points in node (or index of point if no parenthesis).") TODO: explain
+            plot_num += 1
+
+    # Plotting
+    plt.savefig(outdir + 'agglomerative_dendrograms.svg', format="svg")
 
 if __name__ == "__main__":
     experiments(config_file=sys.argv[1])
+    # plot_agglomerative_dendograms(config_file=sys.argv[1])
