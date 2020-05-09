@@ -229,7 +229,7 @@ def experiments(config_file):
             plot_num += 1
 
     # Plotting
-    plt.savefig(outdir + 'plot.svg', format="svg")
+    plt.savefig(outdir + 'plot.png', bbox_inches='tight')
 
 
 def plot_agglomerative_dendograms(config_file):
@@ -322,7 +322,7 @@ def plot_agglomerative_dendograms(config_file):
             plot_num += 1
 
     # Plotting
-    plt.savefig(outdir + 'agglomerative_dendrograms.svg', format="svg")
+    plt.savefig(outdir + 'agglomerative_dendrograms.png', bbox_inches='tight')
 
 
 if __name__ == "__main__":

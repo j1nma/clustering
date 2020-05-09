@@ -1,4 +1,4 @@
-Directory results/20200509_204758/ created.
+Directory results/20200509_205200/ created.
 Iris, Agglomerative Avg
 	Overall entropy: 0.453
 	F1 Score: 0.653
