@@ -1,10 +1,10 @@
 --dataset
-BreastCancer
+NoisyCircles
 --technique
-MDS
---components
-3
+Agglomerative
+--kneighbours
+10
 --seed
 1910299034
 --outdir
-results/breast-cancer-wisconsin/MDS/
+results/NoisyCircles/Agglomerative/
