@@ -6,6 +6,7 @@ import os
 import pandas as pd
 import sys
 import time
+from sklearn import cluster
 from sklearn.datasets import load_iris, load_breast_cancer, make_circles
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
@@ -33,14 +34,14 @@ def get_args_parser():
     parser.add_argument(
         "-t",
         "--technique",
-        default="PCA",
-        help="Name of the dimensionality reduction technique: PCA, tSNE, MDS."
+        default="Agglomerative",
+        help="Name of the clustering technique: Agglomerative, kMeans, GaussianMixture."
     )
     parser.add_argument(
-        "-c",
-        "--components",
+        "-k",
+        "--clusters",
         default=2,
-        help="Number of components to consider for PCA, tSNE: 2, 3."
+        help="Number of clusters for the given technique."
     )
     parser.add_argument(
         "-s",
@@ -118,7 +119,7 @@ def experiments(config_file):
     n_components = int(args.components)
 
     # Set technique
-    if args.technique == 'PCA':
+    if args.technique == 'Agglomerative':
         pca = PCA(n_components=n_components)
         data_transformed = pca.fit_transform(data)
         transformed_df = pd.DataFrame(data=data_transformed, columns=['PC ' + str(i + 1) for i in range(n_components)])
@@ -126,14 +127,14 @@ def experiments(config_file):
                                                                                              np.sum(
                                                                                                  pca.explained_variance_ratio_).round(
                                                                                                  decimals=3)))
-    elif args.technique == 'tSNE':
+    elif args.technique == 'kMeans':
         time_start = time.time()
         tsne = TSNE(n_components=n_components, n_iter=1000, random_state=int(args.seed))
         data_transformed = tsne.fit_transform(data)
         log(logfile, 't-SNE done! Time elapsed: {0:.3f} seconds'.format(time.time() - time_start))
         transformed_df = pd.DataFrame(data=data_transformed, columns=['PC ' + str(i + 1) for i in range(n_components)])
 
-    elif args.technique == 'MDS':
+    elif args.technique == 'GaussianMixture':
         embedding = MDS(n_components=n_components)
         data_transformed = embedding.fit_transform(data)
         log(logfile, 'MDS transformation shape: {}'.format(data_transformed.shape))
