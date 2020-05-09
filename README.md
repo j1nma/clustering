@@ -24,7 +24,7 @@ A _results_ folder will contain a timestamp directory with the latest results.
 
 ### Techniques
 * Hierarchical: Agglomerative Clustering
-* Partitional: Mini Batch K-Means
+* Partitional: K-Means
 * Partitional: Gaussian Mixture
 
 ### Report

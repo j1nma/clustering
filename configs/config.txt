@@ -1,5 +1,3 @@
---kneighbours
-10
 --seed
 1910299034
 --outdir
